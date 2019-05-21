@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+
+
+# this doesn't work well, multiple instance will be listed on the same line
+# Need to use json output and python
+# how many instances running?
+
+initial_count=`aws ec2 describe-instances \
+    --filters "Name=instance-state-code,Values=16" \
+    --query "Reservations[].Instances[].InstanceId" \
+    --output text \
+    | wc -l`
+
+echo initial_count
+
+# spin one up
+aws ec2 run-instances \
+    --image-id ami-0b76c3b150c6b1423 \
+    --count 1 \
+    --instance-type t2.micro \
+    --key-name MyKeyPair \
+    --security-group-ids sg-0b11cc1753a0723a9 \
+    --subnet-id subnet-0f661b84374cebe04
+
+# we should see a new instance come up, then break
+while true; do
+    current_count=`aws ec2 describe-instances \
+        --filters "Name=instance-state-code,Values=16" \
+        --query "Reservations[].Instances[].InstanceId" \
+        --output text \
+        | wc -l`
+    echo initial count is $initial_count
+    echo current_count is $current_count
+
+    if  [ "$current_count" -ne "$initial_count" ]
+    then
+        echo "not EQUAL"
+        break
+    else
+        echo "equal, still waiting"
+    fi
+done
+
+
